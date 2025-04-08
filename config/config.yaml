@@ -1,0 +1,11 @@
+config:
+  paths:
+    temp_folder: "./data/temp"
+    input_file: "./data/links.txt"
+    notfound_file: "./data/notfound.txt"
+    library_folder: "/media/verbal-kint/hdd/Music"
+    genius_token_file: "./config/genius_token.txt"
+  tag_config:
+    artist_separator: ","
+    file_format: "{%cd% - }%track% - %title%.mp3"
+    file_tree_format: "%albumArtist%/%year% - %album%/"

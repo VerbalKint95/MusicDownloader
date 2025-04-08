@@ -1,11 +1,9 @@
-from config import TEMP_FOLDER
 import os
 import shutil
 import requests
-from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, TYER, TCOM, TCON, COMM, APIC, TRCK
-from genius import search_song, get_song_details
+from genius_api import search_song, get_song_details
 
 TEMP_FOLDER = "data/temp"
 TAGGED_FOLDER = "data/tagged"
@@ -75,16 +73,7 @@ def process_mp3(file_path):
     print(f"\n🎵 Traitement du fichier : {file_name}")
 
     # Recherche sur Genius
-    audio=EasyID3(file_path)
-    title = audio.get('title', [None])[0]
-    artist = audio.get('artist', [None])[0]
-
-    query = os.path.splitext(file_name)[0]
-    if title and artist:
-        query = title + " " + artist
-
-
-    song_info = search_song(query)
+    song_info = search_song(os.path.splitext(file_name)[0])
     if not song_info:
         print("⚠️ Impossible de trouver les infos sur Genius. Déplacement vers manual_tagging/")
         os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)

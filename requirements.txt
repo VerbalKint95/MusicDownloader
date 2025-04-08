@@ -1,3 +1,5 @@
 pytubefix
 requests
 mutagen
+pyyaml
+spotDl
