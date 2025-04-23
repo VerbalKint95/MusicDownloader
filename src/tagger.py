@@ -1,19 +1,24 @@
 from config import TEMP_FOLDER, GENIUS_TOKEN
 from lyricsgenius import Genius
-from lyricsgenius.genius import Song, Artist, Album
 import MP3TagEditor
 import os
 import shutil
 import requests
 from MP3TagEditor import MP3TagEditor
-from genius import enhanceTag
 from pathlib import Path
+from urllib.parse import urlparse
+import re
 
-TAGGED_FOLDER = "data/tagged"
+TAGGED_FOLDER = TEMP_FOLDER / "tagged"
+THUMBNAIL_FOLDER = TEMP_FOLDER / "thumbnail"
+MANUAL_TAGGING_FOLDER = TEMP_FOLDER / "manual_tagging"
+
 os.makedirs(TAGGED_FOLDER, exist_ok=True)
-MANUAL_TAGGING_FOLDER = "data/manual_tagging"
+os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
+os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
+
 genius = Genius(GENIUS_TOKEN)
-genius_URL = Path("https://genius.com")
+
 
 
 def download_image(url, save_path):
@@ -34,67 +39,56 @@ def enhanceTag(file_path: str):
     file_name = os.path.basename(file_path)
     print(f"\n🎵 Traitement du fichier : {file_name}")
     mp3 = MP3TagEditor(file_path)
-    title = mp3.get_title()
+    title = re.sub(r"\s*\(.*?\)", "", mp3.get_title())
     artist = mp3.get_album_artist()
     if title and artist:
         song = genius.search_song(title=title, artist=artist, get_full_info=True)
 
-        mp3.set_title(song.title)
-        mp3.set_url(genius_URL/song.path)
-        mp3.set_lyrics(song.lyrics)
-        mp3.set_artist(song.)
-
-        album_id = song.album.id
-        album = genius.search_album(album_id=album_id)
-
-        mp3.set_album(album.name)
-        mp3.set_album_artist(album.artist)
-
-        i=0
-        for track in album.tracks:
-            i=i+1
-            if track.id == song.id:
-                mp3.set_track(i, len(album.tracks))
         
 
-    else:
+        mp3.set_title(song.title)
+        mp3.set_url(song.url)
+        mp3.set_lyrics(song.lyrics)
+
+        #cover
+        cover_filename = Path(urlparse(song.song_art_image_url).path).name
+        cover_uri = THUMBNAIL_FOLDER / cover_filename
+        
+        if not os.path.isfile(cover_uri):
+            download_image(song.song_art_image_url, cover_uri)
+        mp3.set_cover(cover_uri)
+
+
+        mp3.set_artist("")
+        for writer in song.writers:
+            mp3.add_artist(writer.name)
+
+        mp3.set_composer("")
+        for composer in song.producers:
+            mp3.add_composer(composer.name)
+        
+
+        mp3.set_album_artist(song.album.artist.name)
+        mp3.set_album(song.album.name)
+
+        #set track using Genius TODO not use genius because tracklist does not take in count CD and can have "false track" like thumbnail or booklet
+        if not mp3.get_track():
+            album_id = song.album.id
+            album = genius.search_album(album_id=album_id)
+            for track in album.tracks:
+                if track.id == song.id:
+                    mp3.set_track(track.number, len(album.tracks))
+                    break
+        
         # Déplacement vers le dossier tagged/
         shutil.move(file_path, os.path.join(TAGGED_FOLDER, file_name))
         print(f"✅ Fichier déplacé vers {TAGGED_FOLDER}")
-        
 
+    else:
+        # Déplacement vers le dossier tagged/
+        shutil.move(file_path, os.path.join(MANUAL_TAGGING_FOLDER, file_name))
+        print(f"❌ Fichier n'a pas pu être taggé, déplacé vers {MANUAL_TAGGING_FOLDER}")
     return
-
-
-'''    # Recherche sur Genius
-    audio=MP3TagEditor(file_path)
-    title = audio.get_title
-    artist = audio.get_album_artist
-
-    if artist and title:
-        song_info = search_song(artist=artist, title=title)
-    else
-        song_info = search_song(os.path.splitext(file_name)[0])
-
-
-
-
-    if not song_info:
-        print("⚠️ Impossible de trouver les infos sur Genius. Déplacement vers manual_tagging/")
-        os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
-        shutil.move(file_path, os.path.join(MANUAL_TAGGING_FOLDER, file_name))
-        return
-
-    song_details = get_song_details(song_info["id"])
-    if not song_details:
-        print("⚠️ Impossible de récupérer les détails de la chanson. Déplacement vers manual_tagging/")
-        os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
-        shutil.move(file_path, os.path.join(MANUAL_TAGGING_FOLDER, file_name))
-        return
-
-    # Tagger le MP3
-    tag_mp3(file_path, song_details)
-'''
 
     
 
