@@ -27,11 +27,24 @@ _paths = _config_data["config"]["paths"]
 _tag_config = _config_data["config"]["tag_config"]
 
 # Variables de chemin, résolues proprement
-TEMP_FOLDER = _relative_path(_paths["temp_folder"])
+
 INPUT_FILE = _relative_path(_paths["input_file"])
 NOTFOUND_FILE = _relative_path(_paths["notfound_file"])
 LIBRARY_FOLDER = _relative_path(_paths["library_folder"])
 GENIUS_TOKEN_FILE = _relative_path(_paths["genius_token_file"])
+
+TEMP_FOLDER = _relative_path(_paths["temp_folder"])
+
+#temp sub-folder
+DOWNLOAD_FOLDER = TEMP_FOLDER / "download"
+TAGGED_FOLDER = TEMP_FOLDER / "tagged"
+THUMBNAIL_FOLDER = TEMP_FOLDER / "thumbnail"
+MANUAL_TAGGING_FOLDER = TEMP_FOLDER / "manual_tagging"
+
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+os.makedirs(TAGGED_FOLDER, exist_ok=True)
+os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
+os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
 
 # Chargement du token Genius
 if not GENIUS_TOKEN_FILE.exists():

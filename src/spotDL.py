@@ -1,13 +1,13 @@
 import subprocess
 import logging
-from config import TEMP_FOLDER
+from config import DOWNLOAD_FOLDER
 
 def download(url: str):
     """
     Télécharge une musique depuis une URL Spotify en utilisant SpotDL.
     """
     try:
-        command = ["spotdl", url, "--output", TEMP_FOLDER]
+        command = ["spotdl", url, "--output", DOWNLOAD_FOLDER]
         result = subprocess.run(command, capture_output=True, text=True)
         
         if result.returncode == 0:

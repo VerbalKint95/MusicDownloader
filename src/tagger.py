@@ -1,4 +1,4 @@
-from config import TEMP_FOLDER, GENIUS_TOKEN
+from config import GENIUS_TOKEN, TAGGED_FOLDER, MANUAL_TAGGING_FOLDER, DOWNLOAD_FOLDER, THUMBNAIL_FOLDER
 from lyricsgenius import Genius
 import MP3TagEditor
 import os
@@ -9,13 +9,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import re
 
-TAGGED_FOLDER = TEMP_FOLDER / "tagged"
-THUMBNAIL_FOLDER = TEMP_FOLDER / "thumbnail"
-MANUAL_TAGGING_FOLDER = TEMP_FOLDER / "manual_tagging"
-
-os.makedirs(TAGGED_FOLDER, exist_ok=True)
-os.makedirs(THUMBNAIL_FOLDER, exist_ok=True)
-os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
+     
 
 genius = Genius(GENIUS_TOKEN)
 
@@ -39,13 +33,13 @@ def enhanceTag(file_path: str):
     file_name = os.path.basename(file_path)
     print(f"\n🎵 Traitement du fichier : {file_name}")
     mp3 = MP3TagEditor(file_path)
-    title = re.sub(r"\s*\(.*?\)", "", mp3.get_title())
+    title = re.sub(r"\s*\(feat\.?\s[^)]*\)", "", mp3.get_title())
     artist = mp3.get_album_artist()
+    
     if title and artist:
         song = genius.search_song(title=title, artist=artist, get_full_info=True)
 
-        
-
+    if song:
         mp3.set_title(song.title)
         mp3.set_url(song.url)
         mp3.set_lyrics(song.lyrics)
@@ -94,18 +88,18 @@ def enhanceTag(file_path: str):
 
 def process_all_mp3():
     """Boucle sur tous les fichiers MP3 dans temp/ et les traite."""
-    if not os.path.exists(TEMP_FOLDER):
-        print(f"⚠️ Le dossier {TEMP_FOLDER} n'existe pas.")
+    if not os.path.exists(DOWNLOAD_FOLDER):
+        print(f"⚠️ Le dossier {DOWNLOAD_FOLDER} n'existe pas.")
         return
 
-    files = [f for f in os.listdir(TEMP_FOLDER) if f.endswith(".mp3")]
+    files = [f for f in os.listdir(DOWNLOAD_FOLDER) if f.endswith(".mp3")]
 
     if not files:
         print("📂 Aucun fichier MP3 trouvé.")
         return
 
     for file in files:
-        enhanceTag(os.path.join(TEMP_FOLDER, file))
+        enhanceTag(os.path.join(DOWNLOAD_FOLDER, file))
 
 if __name__ == "__main__":
     process_all_mp3()
