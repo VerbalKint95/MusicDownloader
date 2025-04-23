@@ -1,9 +1,15 @@
-from mutagen.easyid3 import EasyID3
+from downloader import process_links
+from tagger import process_all_mp3
 from config import TEMP_FOLDER
+from MP3TagEditor import MP3TagEditor 
 from pathlib import Path
 
-file = Path(TEMP_FOLDER / "Youssoupha - AMOUR SUPRÊME.mp3")
+file_path = Path(TEMP_FOLDER / "Tengo John, Di-Meh, Cinco - MTM (feat. Di-Meh & Cinco).mp3")
 
-audio=EasyID3(file)
-print(audio.get('title', [None])[0])
-print(audio.get('artist', [None])[0])
+file = MP3TagEditor(file_path)
+
+print(file.get_empty_tags())
+
+print(file.get_tag("artist"))
+
+

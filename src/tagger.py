@@ -1,15 +1,20 @@
-from config import TEMP_FOLDER
+from config import TEMP_FOLDER, GENIUS_TOKEN
+from lyricsgenius import Genius
+from lyricsgenius.genius import Song, Artist, Album
+import MP3TagEditor
 import os
 import shutil
 import requests
-from mutagen.easyid3 import EasyID3
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TPE1, TALB, TYER, TCOM, TCON, COMM, APIC, TRCK
-from genius import search_song, get_song_details
+from MP3TagEditor import MP3TagEditor
+from genius import enhanceTag
+from pathlib import Path
 
-TEMP_FOLDER = "data/temp"
 TAGGED_FOLDER = "data/tagged"
+os.makedirs(TAGGED_FOLDER, exist_ok=True)
 MANUAL_TAGGING_FOLDER = "data/manual_tagging"
+genius = Genius(GENIUS_TOKEN)
+genius_URL = Path("https://genius.com")
+
 
 def download_image(url, save_path):
     """Télécharge une image et la sauvegarde localement."""
@@ -24,67 +29,56 @@ def download_image(url, save_path):
         print(f"Erreur lors du téléchargement de l'image : {e}")
     return None
 
-def tag_mp3(file_path, song_details):
-    """Ajoute les tags ID3 au fichier MP3."""
-    audio = MP3(file_path, ID3=ID3)
-
-    # S'assurer que le fichier a des tags
-    if audio.tags is None:
-        audio.add_tags()
-
-    # Ajout des métadonnées
-    audio.tags.add(TIT2(encoding=3, text=song_details.get("title", "")))  # Titre
-    audio.tags.add(TPE1(encoding=3, text=song_details.get("primary_artist", {}).get("name", "")))  # Artiste
-    audio.tags.add(TALB(encoding=3, text=song_details.get("album", {}).get("name", "")))  # Album
-    release_year = song_details.get("release_date")
-    release_year = release_year[:4] if release_year else "Unknown"
-    audio.tags.add(TYER(encoding=3, text=release_year))  # Année
-
-    writers = [writer["name"] for writer in song_details.get("writer_artists", []) if isinstance(writer, dict)]
-    audio.tags.add(TCOM(encoding=3, text=", ".join(writers)))  # Compositeurs
-
-    audio.tags.add(TCON(encoding=3, text=song_details.get("genre", "")))  # Genre musical
-
-    # Track et Disk info
-    track_number = song_details.get("track_number", "1")
-    disk_number = song_details.get("disk_number", "1")
-    audio.tags.add(TRCK(encoding=3, text=f"{track_number}/{disk_number}"))
-
-    # Commentaire avec lien + description + annotations
-    commentary = f"{song_details.get('url', '')}\n\n{song_details.get('description', '')}\n\nAnnotations:\n"
-    annotations = song_details.get("annotations", [])
-    for annotation in annotations:
-        commentary += f"- {annotation}\n"
-    audio.tags.add(COMM(encoding=3, text=commentary))
-
-    # Téléchargement et ajout de la cover
-    cover_url = song_details.get("cover_art_url", "")
-    if cover_url:
-        cover_path = download_image(cover_url, "cover.jpg")
-        if cover_path:
-            with open(cover_path, "rb") as cover_file:
-                audio.tags.add(APIC(encoding=3, mime="image/jpeg", type=3, desc="Cover", data=cover_file.read()))
-            os.remove(cover_path)
-
-    # Sauvegarde des tags
-    audio.save()
-
-def process_mp3(file_path):
+def enhanceTag(file_path: str):
     """Affiche le nom du fichier, récupère les infos Genius et tagge le MP3."""
     file_name = os.path.basename(file_path)
     print(f"\n🎵 Traitement du fichier : {file_name}")
-
-    # Recherche sur Genius
-    audio=EasyID3(file_path)
-    title = audio.get('title', [None])[0]
-    artist = audio.get('artist', [None])[0]
-
-    query = os.path.splitext(file_name)[0]
+    mp3 = MP3TagEditor(file_path)
+    title = mp3.get_title()
+    artist = mp3.get_album_artist()
     if title and artist:
-        query = title + " " + artist
+        song = genius.search_song(title=title, artist=artist, get_full_info=True)
+
+        mp3.set_title(song.title)
+        mp3.set_url(genius_URL/song.path)
+        mp3.set_lyrics(song.lyrics)
+        mp3.set_artist(song.)
+
+        album_id = song.album.id
+        album = genius.search_album(album_id=album_id)
+
+        mp3.set_album(album.name)
+        mp3.set_album_artist(album.artist)
+
+        i=0
+        for track in album.tracks:
+            i=i+1
+            if track.id == song.id:
+                mp3.set_track(i, len(album.tracks))
+        
+
+    else:
+        # Déplacement vers le dossier tagged/
+        shutil.move(file_path, os.path.join(TAGGED_FOLDER, file_name))
+        print(f"✅ Fichier déplacé vers {TAGGED_FOLDER}")
+        
+
+    return
 
 
-    song_info = search_song(query)
+'''    # Recherche sur Genius
+    audio=MP3TagEditor(file_path)
+    title = audio.get_title
+    artist = audio.get_album_artist
+
+    if artist and title:
+        song_info = search_song(artist=artist, title=title)
+    else
+        song_info = search_song(os.path.splitext(file_name)[0])
+
+
+
+
     if not song_info:
         print("⚠️ Impossible de trouver les infos sur Genius. Déplacement vers manual_tagging/")
         os.makedirs(MANUAL_TAGGING_FOLDER, exist_ok=True)
@@ -100,11 +94,9 @@ def process_mp3(file_path):
 
     # Tagger le MP3
     tag_mp3(file_path, song_details)
+'''
 
-    # Déplacement vers le dossier tagged/
-    os.makedirs(TAGGED_FOLDER, exist_ok=True)
-    shutil.move(file_path, os.path.join(TAGGED_FOLDER, file_name))
-    print(f"✅ Fichier déplacé vers {TAGGED_FOLDER}")
+    
 
 def process_all_mp3():
     """Boucle sur tous les fichiers MP3 dans temp/ et les traite."""
@@ -119,7 +111,7 @@ def process_all_mp3():
         return
 
     for file in files:
-        process_mp3(os.path.join(TEMP_FOLDER, file))
+        enhanceTag(os.path.join(TEMP_FOLDER, file))
 
 if __name__ == "__main__":
     process_all_mp3()

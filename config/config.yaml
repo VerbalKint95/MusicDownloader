@@ -6,6 +6,6 @@ config:
     library_folder: "/media/verbal-kint/hdd/Music"
     genius_token_file: "./config/genius_token.txt"
   tag_config:
-    artist_separator: ","
-    file_format: "{%cd% - }%track% - %title%.mp3"
+    artist_separator: " - "
+    file_format: "IF(%cd%,%cd% - ,}%track% - %title%.mp3"
     file_tree_format: "%albumArtist%/%year% - %album%/"

@@ -3,3 +3,4 @@ requests
 mutagen
 pyyaml
 spotDl
+lyricsgenius

@@ -41,6 +41,6 @@ with open(GENIUS_TOKEN_FILE, "r", encoding="utf-8") as f:
     GENIUS_TOKEN = f.read().strip()
 
 # Variables pour le tagging
-ARTIST_SEPARATOR = _tag_config["artist_separator"]
+ARTIST_SEPARATOR = str(_tag_config["artist_separator"])
 FILE_FORMAT = _tag_config["file_format"]
 FILE_TREE_FORMAT = _tag_config["file_tree_format"]
